@@ -56,6 +56,26 @@ describe("stripImportExtensions", () => {
     );
   });
 
+  it("rewrites conventional project alias imports", () => {
+    const source = [
+      'import Button from "@/components/Button.tsx";',
+      'import type { User } from "~/types/User.ts";',
+      'export { api } from "@/services/api.js";',
+      'const page = import("~/pages/Home.jsx");',
+      'import tool from "@scope/package/tool.ts";',
+    ].join("\n");
+
+    expect(stripImportExtensions(source)).toBe(
+      [
+        'import Button from "@/components/Button";',
+        'import type { User } from "~/types/User";',
+        'export { api } from "@/services/api";',
+        'const page = import("~/pages/Home");',
+        'import tool from "@scope/package/tool.ts";',
+      ].join("\n"),
+    );
+  });
+
   it("preserves query strings, fragments, and line endings", () => {
     const source =
       'import raw from "./file.ts?raw";\r\n' +

@@ -176,6 +176,21 @@ The transformer handles statically analyzable module specifiers in:
 - Named and star re-exports
 - String-literal dynamic imports
 
+Relative imports and the conventional `@/` and `~/` project aliases are
+rewritten by default. For example:
+
+```ts
+import Button from "@/components/Button.tsx";
+import type { User } from "~/types/User.ts";
+```
+
+becomes:
+
+```ts
+import Button from "@/components/Button";
+import type { User } from "~/types/User";
+```
+
 Examples:
 
     import value from "./value.ts";
@@ -202,7 +217,8 @@ The package does not modify:
 - Nonliteral dynamic imports
 - URL, node:, and package-import-map specifiers
 - Root-relative browser paths
-- Package imports and package subpaths by default
+- Package imports and package subpaths by default (scoped packages such as
+  `@scope/package/file.js` are not mistaken for the `@/` alias)
 - require() calls
 
 Package subpaths can be enabled with --include-package-subpaths. This option

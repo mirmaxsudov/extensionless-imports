@@ -180,7 +180,13 @@ function shouldTransformSpecifier(
     specifier: string,
     options: StripOptions,
 ): boolean {
-    if (isRelativeSpecifier(specifier)) return true;
+    if (
+        isRelativeSpecifier(specifier) ||
+        isProjectAliasSpecifier(specifier)
+    ) {
+        return true;
+    }
+
     return (
         options.includePackageSubpaths === true && isPackageSubpath(specifier)
     );
@@ -188,6 +194,10 @@ function shouldTransformSpecifier(
 
 function isRelativeSpecifier(specifier: string): boolean {
     return specifier.startsWith("./") || specifier.startsWith("../");
+}
+
+function isProjectAliasSpecifier(specifier: string): boolean {
+    return specifier.startsWith("@/") || specifier.startsWith("~/");
 }
 
 function isPackageSubpath(specifier: string): boolean {
