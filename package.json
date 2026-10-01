@@ -1,0 +1,60 @@
+{
+  "name": "extensionless-imports",
+  "version": "0.1.0",
+  "description": "Remove JavaScript and TypeScript extensions from module specifiers.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "bin": {
+    "extensionless-imports": "./dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "clean": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\"",
+    "build": "npm run clean && tsc -p tsconfig.json",
+    "typecheck": "tsc --noEmit -p tsconfig.test.json",
+    "test": "npm run build && vitest run",
+    "check": "npm run typecheck && npm test && publint",
+    "prepublishOnly": "npm run check"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mirmaxsudov/extensionless-imports.git"
+  },
+  "bugs": {
+    "url": "https://github.com/mirmaxsudov/extensionless-imports/issues"
+  },
+  "homepage": "https://github.com/mirmaxsudov/extensionless-imports#readme",
+  "keywords": [
+    "imports",
+    "typescript",
+    "javascript",
+    "codemod",
+    "cli"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">=20.19.0"
+  },
+  "dependencies": {
+    "chokidar": "^5.0.0",
+    "es-module-lexer": "^3.0.2",
+    "minimatch": "^10.2.6"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.3",
+    "publint": "^0.3.24",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.3"
+  }
+}
