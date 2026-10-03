@@ -79,6 +79,60 @@ describe("stripImportExtensions", () => {
     );
   });
 
+  it("rewrites imports in TSX without changing JSX", () => {
+    const source = [
+      'import { ChatPage } from "@/modules/chat/components/ChatPage.tsx";',
+      'import type { RouterContext } from "./RouterContext.ts";',
+      "",
+      "export const Root = () => (",
+      "  <ThemeProvider>",
+      "    <button",
+      "      onClick={() =>",
+      "        toast.add({ title: 'Toast smoke test', type: 'success' })",
+      "      }",
+      "    >",
+      "      Toast smoke test",
+      "    </button>",
+      "  </ThemeProvider>",
+      ");",
+    ].join("\n");
+
+    expect(stripImportExtensions(source, { syntax: "tsx" })).toBe(
+      source
+        .replace("ChatPage.tsx", "ChatPage")
+        .replace("RouterContext.ts", "RouterContext"),
+    );
+  });
+
+  it("handles tagged templates inside JSX", () => {
+    const source = [
+      "import { LoginForm } from '@/modules/auth/index.ts';",
+      "",
+      "export const LoginPage = () => (",
+      "  <section>",
+      "    <h1>{t`Welcome back.`}</h1>",
+      "    <p>{t`Your credentials are protected in transit.`}</p>",
+      "    <LoginForm />",
+      "  </section>",
+      ");",
+    ].join("\n");
+
+    expect(stripImportExtensions(source)).toBe(
+      source.replace("@/modules/auth/index.ts", "@/modules/auth/index"),
+    );
+  });
+
+  it("auto-detects TypeScript angle-bracket assertions", () => {
+    const source = [
+      'import value from "./value.ts";',
+      "const typed = <string>value;",
+    ].join("\n");
+
+    expect(stripImportExtensions(source)).toBe(
+      source.replace("./value.ts", "./value"),
+    );
+  });
+
   it("preserves query strings, fragments, and line endings", () => {
     const source =
       'import raw from "./file.ts?raw";\r\n' +
@@ -178,6 +232,16 @@ describe("processFile", () => {
     await expect(
       processFile(filePath, { check: true, write: true }),
     ).rejects.toThrow("check and write cannot both be enabled");
+  });
+
+  it("includes the source filename in parser errors", async () => {
+    const directory = await createTemporaryDirectory();
+    const filePath = join(directory, "broken.tsx");
+    await writeFile(filePath, "export const Broken = () => <div>;", "utf8");
+
+    await expect(processFile(filePath)).rejects.toThrow(
+      `Failed to parse ${filePath}`,
+    );
   });
 });
 
@@ -376,13 +440,43 @@ describe("CLI", () => {
     expect(includedResult.stdout).toContain("1 of 1 file would change");
   });
 
-  it("rewrites a file after it is saved in watch mode", async () => {
+  it("writes imports in a directory containing realistic TSX", async () => {
     const directory = await createTemporaryDirectory();
-    await mkdir(join(directory, "src"), { recursive: true });
-    const filePath = join(directory, "src", "example.ts");
+    const routesDirectory = join(directory, "src", "routes");
+    const filePath = join(routesDirectory, "__root.tsx");
+    await mkdir(routesDirectory, { recursive: true });
     await writeFile(
       filePath,
-      'import value from "./value";\n',
+      [
+        'import { ThemeProvider } from "../ThemeProvider.tsx";',
+        "",
+        "export const Root = () => (",
+        "  <ThemeProvider>",
+        "    <button onClick={() => toast.add({ title: 'Ready' })}>",
+        "      Toast smoke test",
+        "    </button>",
+        "  </ThemeProvider>",
+        ");",
+      ].join("\n"),
+      "utf8",
+    );
+
+    const result = await runCli(["--write", routesDirectory], directory);
+
+    expect(result.code).toBe(0);
+    expect(result.stderr).toBe("");
+    expect(await readFile(filePath, "utf8")).toContain(
+      'from "../ThemeProvider"',
+    );
+  });
+
+  it("recovers after a TSX parse error in watch mode", async () => {
+    const directory = await createTemporaryDirectory();
+    await mkdir(join(directory, "src"), { recursive: true });
+    const filePath = join(directory, "src", "example.tsx");
+    await writeFile(
+      filePath,
+      'import value from "./value";\nexport const View = () => <div>;\n',
       "utf8",
     );
 
@@ -408,26 +502,37 @@ describe("CLI", () => {
 
     try {
       await waitUntil(
-        () => stdout.includes("watching for changes"),
+        () =>
+          stdout.includes("watching for changes") &&
+          stderr.includes("Failed to parse") &&
+          stderr.includes("example.tsx"),
         "watcher did not become ready",
       );
 
       await writeFile(
         filePath,
-        'import value from "./value.ts";\n',
+        [
+          'import value from "./value.ts";',
+          "export const View = () => <div>Ready</div>;",
+          "",
+        ].join("\n"),
         "utf8",
       );
 
       await waitUntil(
         async () =>
           (await readFile(filePath, "utf8")) ===
-          'import value from "./value";\n',
+          [
+            'import value from "./value";',
+            "export const View = () => <div>Ready</div>;",
+            "",
+          ].join("\n"),
         "watcher did not rewrite the saved file",
       );
 
       expect(stdout).toContain("updated");
       expect(stdout).toContain("(1 replacement)");
-      expect(stderr).toBe("");
+      expect(stderr).toContain("Failed to parse");
     } finally {
       const closePromise =
         child.exitCode === null

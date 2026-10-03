@@ -128,6 +128,13 @@ Package subpaths are unchanged by default. They can be enabled explicitly:
       includePackageSubpaths: true,
     });
 
+JavaScript, JSX, TypeScript, and TSX are detected automatically. The grammar
+can also be selected explicitly when transforming an in-memory string:
+
+    stripImportExtensions(source, {
+      syntax: "tsx",
+    });
+
 ### processFile
 
 Preview a file:
@@ -169,6 +176,7 @@ Use the same glob and extension filtering available in the CLI:
 
 ## Supported syntax
 
+Source files are parsed with their JavaScript, JSX, TypeScript, or TSX grammar.
 The transformer handles statically analyzable module specifiers in:
 
 - Default, named, aliased, namespace, mixed, and type-only imports
@@ -247,8 +255,16 @@ Only .ts, .tsx, .js, and .jsx suffixes are removed from module specifiers.
     npm run check
     npm pack --dry-run
 
-The project uses TypeScript, Vitest, es-module-lexer, and chokidar. Build
+The project uses TypeScript, Vitest, @babel/parser, and chokidar. Build
 output is generated in dist and is not committed.
+
+### Source layout
+
+- `src/index.ts` — stable public API facade
+- `src/parser.ts` — JavaScript, JSX, TypeScript, and TSX parsing
+- `src/transform.ts` — module-specifier transformation rules
+- `src/files.ts` — source discovery and atomic file processing
+- `src/cli/` — CLI options, output, execution, and watch-mode concerns
 
 ## License
 

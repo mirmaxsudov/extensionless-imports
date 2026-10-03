@@ -1,3 +1,5 @@
+export type SourceSyntax = "auto" | "js" | "jsx" | "ts" | "tsx";
+
 export interface StripOptions {
     /**
      * Also rewrite package subpaths such as some-package/helper.js.
@@ -6,6 +8,12 @@ export interface StripOptions {
      * part of the package's public API.
      */
     includePackageSubpaths?: boolean;
+
+    /**
+     * Source grammar used while locating module specifiers. Defaults to auto.
+     * File-based APIs infer this value from the source file extension.
+     */
+    syntax?: SourceSyntax;
 }
 
 export interface ProcessFileOptions extends StripOptions {
