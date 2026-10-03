@@ -20,6 +20,9 @@ import {
 
 const temporaryDirectories: string[] = [];
 const cliPath = fileURLToPath(new URL("../dist/cli.js", import.meta.url));
+const packageJson = JSON.parse(
+  await readFile(new URL("../package.json", import.meta.url), "utf8"),
+) as { version: string };
 
 afterEach(async () => {
   await Promise.all(
@@ -299,7 +302,7 @@ describe("CLI", () => {
     expect(help.stdout).toContain("--verbose");
     expect(help.stdout).toContain("--watch");
     expect(version.code).toBe(0);
-    expect(version.stdout.trim()).toBe("0.1.0");
+    expect(version.stdout.trim()).toBe(packageJson.version);
   });
 
   it("supports ignore patterns, extension filters, and verbose output", async () => {

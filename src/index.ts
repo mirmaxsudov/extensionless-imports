@@ -34,6 +34,7 @@ export type {
 } from "./types.js";
 
 const REMOVABLE_EXTENSION = /\.(?:tsx?|jsx?)(?=[?#]|$)/i;
+
 export const DEFAULT_SOURCE_EXTENSIONS: readonly string[] = Object.freeze([
     ".ts",
     ".tsx",
@@ -148,7 +149,21 @@ function transformSource(
     if (typeof source !== "string")
         throw new TypeError("source must be a string");
 
-    const [imports] = parse(source);
+    const [parsedImports] = parse(source);
+    const imports = [...parsedImports];
+    const normalizedSource = normalizeTypeOnlyExports(source);
+
+    if (normalizedSource !== source) {
+        const [normalizedImports] = parse(normalizedSource);
+        const knownRanges = new Set(
+            imports.map(({start, end}) => `${start}:${end}`),
+        );
+
+        for (const imported of normalizedImports) {
+            const range = `${imported.start}:${imported.end}`;
+            if (!knownRanges.has(range)) imports.push(imported);
+        }
+    }
     const edits: TextEdit[] = [];
 
     for (const imported of imports) {
@@ -215,6 +230,12 @@ function isPackageSubpath(specifier: string): boolean {
 
     const segments = path.split("/");
     return path.startsWith("@") ? segments.length >= 3 : segments.length >= 2;
+}
+
+function normalizeTypeOnlyExports(source: string): string {
+    return source.replace(/\bexport(\s+)type\b/g, (_match, whitespace: string) => {
+        return `export${whitespace}${" ".repeat("type".length)}`;
+    });
 }
 
 function applyEdits(source: string, edits: TextEdit[]): string {

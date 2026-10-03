@@ -171,9 +171,12 @@ Use the same glob and extension filtering available in the CLI:
 
 The transformer handles statically analyzable module specifiers in:
 
-- Default, named, namespace, and type-only imports
+- Default, named, aliased, namespace, mixed, and type-only imports
 - Side-effect imports
-- Named and star re-exports
+- Relative, package-subpath, and conventional path-alias imports
+- Source imports with asset queries such as `?raw`, `?url`, and `?worker`
+- Named, star, and type-only re-exports
+- Explicit barrel-file imports
 - String-literal dynamic imports
 
 Relative imports and the conventional `@/` and `~/` project aliases are
